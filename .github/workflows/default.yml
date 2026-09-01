@@ -1,0 +1,36 @@
+name: Engine Build Test
+on: [ push, pull_request ]
+jobs:
+  build_windows:
+    name: Build Engine on Windows
+    runs-on: windows-latest
+   
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Download Premake
+        run: Invoke-WebRequest -Uri ${{ inputs.download_url }} -OutFile ${{ inputs.out_file }}
+        shell: powershell
+        with:
+          download_url: https://github.com/premake/premake-core/releases/download/v5.0.0-alpha15/premake-5.0.0-alpha15-windows.zip
+          out_file: premake.zip
+
+      - name: Extract Premake
+        run: Expand-Archive -Path ${{ inputs.input_file }} -DestinationPath ${{ inputs.output }}
+        shell: powershell
+        with:
+          input_file: ./premake.zip
+          output: ./premake
+      
+      - name: Generate Makefiles
+        run: ./premake/premake5.exe gmake
+        shell: powershell
+      
+      - name: Build Engine (Debug)
+        run: make config=debug
+        shell: powershell
+
+      - name: Build Engine (Release)
+        run: make config=release
+        shell: powershell
