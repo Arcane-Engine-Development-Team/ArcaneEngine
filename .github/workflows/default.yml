@@ -3,6 +3,7 @@ on: [ push, pull_request ]
 env:
   PREMAKE_DOWNLOAD_URL: https://github.com/premake/premake-core/releases/download/v5.0.0-alpha15/premake-5.0.0-alpha15-windows.zip
   PREMAKE_ZIP_FILE: premake.zip
+  BUILD_DIRECTORY: .\Build
 jobs:
   build_windows:
     name: Build Engine on Windows
@@ -25,9 +26,9 @@ jobs:
         shell: powershell
       
       - name: Build Engine (Debug)
-        run: make config=debug
+        run: make -C ${{ env.BUILD_DIRECTORY }} config=debug
         shell: powershell
 
       - name: Build Engine (Release)
-        run: make config=release
+        run: make -C ${{ env.BUILD_DIRECTORY }} config=release
         shell: powershell
