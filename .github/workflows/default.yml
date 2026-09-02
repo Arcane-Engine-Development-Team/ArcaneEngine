@@ -22,7 +22,7 @@ jobs:
         shell: powershell
       
       - name: Generate Makefiles
-        run: ./premake/premake5.exe gmake
+        run: .\premake\premake5.exe gmake
         shell: cmd
 
       - name: Build Engine (Debug)
