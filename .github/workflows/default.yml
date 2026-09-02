@@ -23,12 +23,16 @@ jobs:
       
       - name: Generate Makefiles
         run: .\premake\premake5.exe gmake
-        shell: cmd
+        shell: powershell
+
+      - name: Get Directory structure
+        run: tree . /F
+        shell: powershell
 
       - name: Build Engine (Debug)
         run: make -C ${{ env.BUILD_DIRECTORY }} config=debug
-        shell: cmd
+        shell: powershell
 
       - name: Build Engine (Release)
         run: make -C ${{ env.BUILD_DIRECTORY }} config=release
-        shell: cmd
+        shell: powershell
