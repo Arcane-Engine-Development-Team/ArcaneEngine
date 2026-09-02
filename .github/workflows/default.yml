@@ -24,7 +24,13 @@ jobs:
       - name: Generate Makefiles
         run: ./premake/premake5.exe gmake
         shell: powershell
-      
+
+      - name: Create Build Output Directories
+        run: |
+          New-Item -ItemType Directory -Path ./Binaries/Output/Debug -Force
+          New-Item -ItemType Directory -Path ./Binaries/Output/Release -Force
+        shell: powershell
+
       - name: Build Engine (Debug)
         run: make -C ${{ env.BUILD_DIRECTORY }} config=debug
         shell: powershell
