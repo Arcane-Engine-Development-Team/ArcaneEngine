@@ -4,6 +4,8 @@ namespace Arcane { }
 
 #if defined(_WIN32)
 #	define AR_PLATFORM_OS_WINDOWS 1
+#elif defined(__linux__)
+#    define AR_PLATFORM_OS_LINUX 1
 #else
 #	error "Unsupported operating system."
 #endif
