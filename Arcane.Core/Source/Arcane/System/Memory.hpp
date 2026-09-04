@@ -2,172 +2,352 @@
 
 #include <Arcane/Core/Core.hpp>
 
-// TEMPORARY INCLUDE
 // TODO: Remove this include and replace it with a custom forwarding function.
 #include <utility>
-#include <memory>
 
 namespace Arcane {
 
-    /**
-     * Allocates a block of memory of the specified size and alignment.
-     * @param size The size of the memory block to allocate, in bytes.
-     * @param alignment The alignment of the memory block, in bytes.
-     * @return A pointer to the allocated memory block, or nullptr if the allocation fails.
-     */
-    void* allocate(u64 size, u64 alignment);
+	/**
+	 * Dynamically allocates a block of memory of the specified size and alignment.
+	 * @param size The size of the memory block to allocate, in bytes.
+	 * @param alignment The alignment of the memory block, in bytes.
+	 * @returns A pointer to the allocated memory block, or nullptr if the allocation fails.
+	 */
+	void* allocate(u64 size, u64 alignment);
 
-    /**
-     * Frees a previously allocated block of memory.
-     * @param pointer A pointer to the memory block to free. If the pointer is nullptr, the function returns immediately without doing anything.
-     */
-    void free(void* pointer);
+	/**
+	 * Deallocates a previously allocated block of memory.
+	 * @param pointer A pointer to the memory block to deallocate. If the pointer is nullptr, the function returns immediately without doing anything.
+	 */
+	void deallocate(void* pointer);
 
-    /**
-     * A smart pointer that manages the lifetime of a dynamically allocated object and provides shared ownership semantics.
-     * The Shared class maintains a reference count to the managed object, and automatically deletes the object when the last Shared instance that owns it is destroyed or dropped.
-     * @tparam T The type of the managed object.
-     */
-    template<typename T>
-    class Shared {
-    public:
-        template<typename U>
-        friend class Shared;
+	/**
+	 * Allocates memory for an array of objects of type T.
+	 * @tparam T The type of the objects to allocate memory for.
+	 * @param count The number of objects to allocate memory for.
+	 * @returns A pointer to the allocated memory block, or nullptr if the allocation fails.
+	 */
+	template<typename T>
+	T* allocate(u64 count = 1);
 
-        /**
-         * Creates a new Shared instance that manages a dynamically allocated object of type T, constructed with the provided arguments.
-         */
-        template<typename... Args>
-        static Shared<T> create(Args&&... args);
+	/**
+	 * Copies a block of memory from the source array to the destination array.
+	 * @tparam T The type of the objects to copy.
+	 * @param source A pointer to the source array.
+	 * @param destination A pointer to the destination array.
+	 * @param count The number of objects to copy.
+	 * @returns A pointer to the destination array.
+	 */
+	template<typename T>
+	T* copy(const T* source, T* destination, u64 count);
 
-        /**
-         * Default constructor. Creates an empty Shared instance that does not manage any object.
-         */
-        Shared();
+	/**
+	 * A smart pointer that manages the lifetime of a dynamically allocated object and ensures unique ownership semantics.
+	 * @tparam T The type of the managed object.
+	 */
+	template<typename T>
+	class Unique {
+	public:
 
-        // Copy constructor and copy assignment operator are deleted to prevent unintended sharing.
-        Shared(const Shared<T>& other) = delete;
-        Shared<T>& operator=(const Shared<T>& other) = delete;
+		/**
+		 * Creates a new Unique instance of type T, constructed with the provided arguments.
+		 */
+		template<typename... Args>
+		static Unique<T> create(Args&&... args);
 
-        /**
-         * The move constructor transfers ownership of the managed object from another Shared instance to this one, leaving the other instance empty. The reference count is not incremented.
-         */
-        Shared(Shared<T>&& other);
+		/**
+		 * Creates a new Unique instance that takes ownership of an existing dynamically allocated object of type T.
+		 * @param pointer A pointer to the existing dynamically allocated object of type T.
+		 * @returns A Unique instance that manages the provided object.
+		 */
+		static Unique<T> from(T* pointer);
 
-        /**
-         * The move assignment operator transfers ownership of the managed object from another Shared instance to this one, leaving the other instance empty. The reference count is not incremented.
-         */
-        Shared<T>& operator=(Shared<T>&& other);
+		Unique() = default;
 
-        /**
-         * Destructor. Decrements the reference count of the managed object and deletes it if this was the last Shared instance that owned it.
-         */
-        ~Shared();
+		// Copy constructor and copy assignment operator are deleted to enforce unique ownership.
+		Unique(const Unique<T>& copy) = delete;
+		Unique<T>& operator=(const Unique<T>& copy) = delete;
 
-        /**
-         * Drops ownership of the managed object, decrementing the reference count and deleting the object if this was the last Shared instance that owned it. After calling drop(), this Shared instance becomes empty and does not manage any object.
-         */
-        void drop();
+		/**
+		 * Moves the ownership of the managed object from another Unique instance to this one.
+		 * @param move The Unique instance to move from.
+		 */
+		Unique(Unique<T>&& move);
 
-        template<typename U>
-        Shared<U> reinterpret_as();
+		/**
+		 * Moves the ownership of the managed object from another Unique instance to this one.
+		 * If this Unique instance already owns an object, that object will be destroyed before taking ownership of the new object.
+		 * @param move The Unique instance to move from.
+		 * @returns A reference to this Unique instance.
+		 */
+		Unique<T>& operator=(Unique<T>&& move);
 
-        /**
-         * Creates a new Shared instance that shares ownership of the managed object. Increments the reference count.
-         */
-        Shared<T> share();
+		/**
+		 * Destroys the managed object if it exists.
+		 */
+		~Unique();
 
-        inline bool is_valid() const { return _memory != nullptr; }
-        inline u64 reference_count() const { return _memory->count; }
+		/**
+		 * Destroys the managed object if it exists, leaving this Unique instance empty.
+		 */
+		void destroy();
 
-        inline T* pointer() { return _memory->pointer; }
-        inline const T* pointer() const { return _memory->pointer; }
-        inline T& reference() { return *(_memory->pointer); }
-        inline const T& reference() const { return *(_memory->pointer); }
+		/**
+		 * Moves the managed object out of this Unique instance, leaving it empty.
+		 * @returns A pointer to the managed object that was moved out, or nullptr if this Unique instance was empty.
+		 */
+		T* take();
 
-    protected:
-        struct Memory {
-            T* pointer;
-            u64 count;
-        };
+		/**
+		 * Moves the ownership of the managed object from this Unique instance to a new Unique instance, leaving this Unique instance
+		 * empty.
+		 * @returns A new Unique instance that has ownership of the managed object.
+		 */
+		Unique<T> move();
 
-    private:
+		inline bool is_valid() const { return _pointer != nullptr; }
 
-        Shared(Memory* memory);
+		inline T* pointer() { return _pointer; }
+		inline const T* pointer() const { return _pointer; }
+		inline T& reference() { return *_pointer; }
+		inline const T& reference() const { return *_pointer; }
 
-        Memory* _memory;
-    };
+	private:
+		Unique(T* pointer);
 
-    template<typename T>
-    template<typename... Args>
-    Shared<T> Shared<T>::create(Args&&... args) {
-        Shared<T>::Memory* memory = reinterpret_cast<Shared<T>::Memory*>(
-            Arcane::allocate(
-                sizeof(Shared<T>::Memory),
-                alignof(Shared<T>::Memory)));
+		T* _pointer = nullptr;
+	};
 
-        memory->count = 1;
-        memory->pointer = reinterpret_cast<T*>(Arcane::allocate(sizeof(T), alignof(T)));
-        new (memory->pointer) T(std::forward<Args>(args)...);
+	/**
+	 * A smart pointer that manages the lifetime of a dynamically allocated object and provides shared ownership semantics.
+	 * @tparam T The type of the managed object.
+	 */
+	template<typename T>
+	class Shared {
+	public:
+		friend class Unique<T>;
+		
+		template<typename U>
+		friend class Shared;
 
-        return Shared<T>(memory);
-    }
+		/**
+		 * Creates a new shared instance of type T, constructed with the provided arguments.
+		 */
+		template<typename... Args>
+		static Shared<T> create(Args&&... args);
 
-    template<typename T>
-    Shared<T>::Shared() : _memory(nullptr) { }
+		static Shared<T> from(Unique<T>& unique);
 
-    template<typename T>
-    Shared<T>::Shared(Memory* memory) : _memory(memory) { }
+		Shared() = default;
 
-    template<typename T>
-    Shared<T>::Shared(Shared<T>&& other) : _memory(other._memory) {
-        other._memory = nullptr;
-    }
+		// Copy constructor and copy assignment operator are deleted to prevent unintended sharing.
+		Shared(const Shared<T>& other) = delete;
+		Shared<T>& operator=(const Shared<T>& other) = delete;
 
-    template<typename T>
-    Shared<T>& Shared<T>::operator=(Shared<T>&& other) {
-        if (this != &other) drop();
-        
-        _memory = other._memory;
-        other._memory = nullptr;
+		/**
+		 * Moves the ownership of the managed object from another shared instance to this one.
+		 * @param other The Shared instance to move from.
+		 */
+		Shared(Shared<T>&& other);
 
-        return *this;
-    }
+		/**
+		 * Moves the ownership of the managed object from another shared instance to this one.
+		 * If this shared instance already owns an object, that object will be released before taking ownership of the new object.
+		 * @param other The shared instance to move from.
+		 * @returns A reference to this shared instance.
+		 */
+		Shared<T>& operator=(Shared<T>&& other);
 
-    template<typename T>
-    Shared<T>::~Shared() {
-        drop();
-    }
+		/**
+		 * Decrements the reference count of the managed object and deletes it if this was the last shared instance that owned it.
+		 */
+		~Shared();
 
-    template<typename T>
-    void Shared<T>::drop() {
-        if (_memory == nullptr) return;
+		/**
+		 * Decrements the reference count of the managed object and deletes it if this was the last shared instance that owned it,
+		 * leaving this shared instance empty.
+		 */
+		void drop();
 
-        _memory->count -= 1;
-        if (_memory->count == 0) {
-            std::destroy_at(_memory->pointer);
-            Arcane::free(_memory->pointer);
-            Arcane::free(_memory);
-        }
+		template<typename U>
+		Shared<U> reinterpret_as();
 
-        _memory = nullptr;
-    }
+		/**
+		 * Creates a new shared instance that shares ownership of the managed object.
+		 */
+		Shared<T> share();
 
-    template<typename T>
-    Shared<T> Shared<T>::share() {
-        if (_memory == nullptr) return Shared<T>();
+		inline bool is_valid() const { return _memory != nullptr; }
+		inline u64 reference_count() const { return _memory->count; }
 
-        _memory->count += 1;
-        return Shared<T>(_memory);
-    }
+		inline T* pointer() { return _memory->pointer; }
+		inline const T* pointer() const { return _memory->pointer; }
+		inline T& reference() { return *(_memory->pointer); }
+		inline const T& reference() const { return *(_memory->pointer); }
 
-    template<typename T>
-    template<typename U>
-    Shared<U> Shared<T>::reinterpret_as() {
-        if (_memory == nullptr) return Shared<U>();
+	protected:
+		struct Memory {
+			T* pointer = nullptr;
+			u64 count = 0;
+		};
 
-        _memory->count += 1;
-        return Shared<U>(reinterpret_cast<typename Shared<U>::Memory*>(_memory));
-    }
+	private:
+		Shared(Memory* memory);
+
+		Memory* _memory = nullptr;
+	};
+
+	template<typename T>
+	T* allocate(u64 count) {
+		return reinterpret_cast<T*>(Arcane::allocate(
+			count * sizeof(T),
+			alignof(T)));
+	}
+
+	template<typename T>
+	T* copy(const T* source, T* destination, u64 count) {
+#if defined(AR_PLATFORM_COMPILER_GCC)
+		return reinterpret_cast<T*>(__builtin_memcpy(
+			destination,
+			source,
+			count * sizeof(T)));
+#else
+#	error "Unimplemented."
+#endif
+	}
+
+	template<typename T>
+	template<typename... Args>
+	Unique<T> Unique<T>::create(Args&&... args) {
+		T* pointer = Arcane::allocate<T>();
+		new (pointer) T(std::forward<Args>(args)...);
+
+		return Unique<T>(pointer);
+	}
+
+	template<typename T>
+	Unique<T> Unique<T>::from(T* pointer) {
+		return Unique<T>(pointer);
+	}
+
+	template<typename T>
+	Unique<T>::Unique(T* pointer) : _pointer(pointer) { }
+
+	template<typename T>
+	Unique<T>::Unique(Unique<T>&& other) : _pointer(other.take()) { }
+
+	template<typename T>
+	Unique<T>& Unique<T>::operator=(Unique<T>&& other) {
+		if (this == &other) return *this;
+		
+		destroy();
+		_pointer = other.take();
+
+		return *this;
+	}
+
+	template<typename T>
+	Unique<T>::~Unique() {
+		destroy();
+	}
+
+	template<typename T>
+	void Unique<T>::destroy() {
+		if (_pointer == nullptr) return;
+		
+		_pointer->~T();
+		deallocate(_pointer);
+		
+		_pointer = nullptr;
+	}
+
+	template<typename T>
+	T* Unique<T>::take() {
+		T* pointer = _pointer;
+		_pointer = nullptr;
+		return pointer;
+	}
+
+	template<typename T>
+	Unique<T> Unique<T>::move() {
+		return Unique<T>(take());
+	}
+
+	template<typename T>
+	template<typename... Args>
+	Shared<T> Shared<T>::create(Args&&... args) {
+		Shared<T>::Memory* memory = Arcane::allocate<Shared<T>::Memory>();
+
+		memory->count = 1;
+		memory->pointer = Arcane::allocate<T>();
+		new (memory->pointer) T(std::forward<Args>(args)...);
+
+		return Shared<T>(memory);
+	}
+
+	template<typename T>
+	Shared<T> Shared<T>::from(Unique<T>& unique) {
+		if (!unique.is_valid()) return Shared<T>();
+
+		Shared<T>::Memory* memory = Arcane::allocate<Shared<T>::Memory>();
+		memory->count = 1;
+		memory->pointer = unique.take();
+
+		return Shared<T>(memory);
+	}
+
+	template<typename T>
+	Shared<T>::Shared(Memory* memory) : _memory(memory) { }
+
+	template<typename T>
+	Shared<T>::Shared(Shared<T>&& other) : _memory(other._memory) {
+		other._memory = nullptr;
+	}
+
+	template<typename T>
+	Shared<T>& Shared<T>::operator=(Shared<T>&& other) {
+		if (this != &other) drop();
+		
+		_memory = other._memory;
+		other._memory = nullptr;
+
+		return *this;
+	}
+
+	template<typename T>
+	Shared<T>::~Shared() {
+		drop();
+	}
+
+	template<typename T>
+	void Shared<T>::drop() {
+		if (_memory == nullptr) return;
+
+		_memory->count -= 1;
+		if (_memory->count == 0) {
+			_memory->pointer->~T();
+			deallocate(_memory->pointer);
+			deallocate(_memory);
+		}
+
+		_memory = nullptr;
+	}
+
+	template<typename T>
+	Shared<T> Shared<T>::share() {
+		if (_memory == nullptr) return Shared<T>();
+
+		_memory->count += 1;
+		return Shared<T>(_memory);
+	}
+
+	template<typename T>
+	template<typename U>
+	Shared<U> Shared<T>::reinterpret_as() {
+		if (_memory == nullptr) return Shared<U>();
+
+		_memory->count += 1;
+		return Shared<U>(reinterpret_cast<typename Shared<U>::Memory*>(_memory));
+	}
 
 }

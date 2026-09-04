@@ -20,7 +20,7 @@ namespace Arcane {
 		return pointer;
 	}
 
-	void free(void* pointer) {
+	void deallocate(void* pointer) {
 		if (pointer == nullptr) return;
 
 		HeapFree(

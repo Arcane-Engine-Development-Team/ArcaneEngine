@@ -1,23 +1,49 @@
 #include <Arcane/Core/Core.hpp>
 #include <Arcane/System/Memory.hpp>
+#include <Arcane/Data/Buffer.hpp>
+#include <Arcane/Data/Algorithm.hpp>
 
 #include <iostream>
 
+template<typename T>
+void print(const T& element) {
+	std::cout << element << std::endl;
+}
+
+template<typename T>
+void multiply(T& element) {
+	element *= 2;
+}
+
 int main() {
-	Arcane::Shared<Arcane::i32> shared_integer = Arcane::Shared<Arcane::i32>::create(42);
-	std::cout << "Shared integer value: " << shared_integer.reference() << std::endl;
-	std::cout << "Reference count: " << shared_integer.reference_count() << std::endl;
+	Arcane::Buffer buffer = Arcane::Buffer<Arcane::i32>::allocate(32);
+	std::cout << "Buffer size: " << buffer.capacity() << std::endl;
 
-	{
-		Arcane::Shared<Arcane::u32> shared_unsigned_integer_copy = shared_integer.reinterpret_as<Arcane::u32>();
-		std::cout << "Shared unsigned integer copy value: " << shared_unsigned_integer_copy.reference() << std::endl;
-		std::cout << "Reference count after copy: " << shared_unsigned_integer_copy.reference_count() << std::endl;
-
-		shared_unsigned_integer_copy.reference() = 100;
+	for (Arcane::u64 i = 0; i < buffer.capacity(); ++i) {
+		buffer.at(i) = static_cast<Arcane::i32>(i);
+		std::cout << "Buffer element " << i << ": " << buffer.at(i) << std::endl;
 	}
 
-	std::cout << "Shared integer value: " << shared_integer.reference() << std::endl;
-	std::cout << "Reference count: " << shared_integer.reference_count() << std::endl;
+	std::cout << "View: o: 16, l: 16" << std::endl;
+	Arcane::View view = buffer.view(16, 16);
+	Arcane::foreach(view, print<Arcane::i32>);
+	std::cout << std::endl;
 
-	return shared_integer.reference();
+	std::cout << "Subview: o: 0, l: 8" << std::endl;
+	Arcane::View subview = view.view(0, 8);
+	Arcane::foreach(subview, print<Arcane::i32>);
+	std::cout << std::endl;
+
+	std::cout << "Slice: o: 16, l: 16" << std::endl;
+	Arcane::Slice slice = buffer.slice(16, 16);
+	Arcane::foreach(slice, multiply<Arcane::i32>);
+	std::cout << std::endl;
+	
+	std::cout << "Subslice: o: 0, l: 8" << std::endl;
+	Arcane::Slice subslice = slice.slice(8, 8);
+	Arcane::foreach(subslice, multiply<Arcane::i32>);
+
+	Arcane::foreach(buffer.view(), print<Arcane::i32>);
+
+	return 0;
 }
