@@ -55,7 +55,7 @@ namespace Arcane { }
 #	define AR_FLOAT64_MAX __DBL_MAX__
 
 #	define AR_CHAR8_TYPE char
-#	define AR_CHAR16_TYPE __CHAR16_TYPE__
+#	define AR_CHAR16_TYPE wchar_t
 #	define AR_CHAR32_TYPE __CHAR32_TYPE__
 
 #	define AR_INTPTR_TYPE __INTPTR_TYPE__

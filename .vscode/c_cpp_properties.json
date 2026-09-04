@@ -1,0 +1,41 @@
+{
+	"configurations": [
+		{
+			"name": "Linux (x64 Debug)",
+			"browse": {
+				"path": [
+					"Arcane.Core/Source",
+					"Arcane.Editor/Source"
+				]
+			},
+			"includePath": [
+				"Arcane.Core/Source",
+				"Arcane.Editor/Source"
+			],
+			"defines": [
+				"AR_PLATFORM_BUILD_CONFIG_DEBUG=1"
+			],
+			"cppStandard": "c++23",
+			"intelliSenseMode": "linux-gcc-x64"
+		},
+		{
+			"name": "Linux (x64 Release)",
+			"browse": {
+				"path": [
+					"Arcane.Core/Source",
+					"Arcane.Editor/Source"
+				]
+			},
+			"includePath": [
+				"Arcane.Core/Source",
+				"Arcane.Editor/Source"
+			],
+			"defines": [
+				"AR_PLATFORM_BUILD_CONFIG_RELEASE=1"
+			],
+			"cppStandard": "c++23",
+			"intelliSenseMode": "linux-gcc-x64"
+		}
+	],
+	"version": 4
+}

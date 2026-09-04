@@ -252,7 +252,7 @@ namespace Arcane {
 		inline T& at(u64 index) { return _data[index]; }
 
 		/**
-		 * Accesses the element at the specified index as an immutable reference.
+		 * Accesses the element at the specified index as a constant reference.
 		 * @param index The index of the element to access.
 		 * @returns A const reference to the element at the specified index.
 		 */
@@ -263,6 +263,11 @@ namespace Arcane {
 		inline T* data() { return _data; }
 		inline const T* data() const { return _data; }
 		inline u64 capacity() const { return _capacity; }
+
+		inline T* begin() { return _data; }
+		inline const T* begin() const { return _data; }
+		inline T* end() { return _data + _capacity; }
+		inline const T* end() const { return _data + _capacity; }
 
 	private:
 		Buffer(T* data, u64 capacity);

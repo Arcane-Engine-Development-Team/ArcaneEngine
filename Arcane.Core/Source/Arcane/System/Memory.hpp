@@ -41,6 +41,8 @@ namespace Arcane {
 	template<typename T>
 	T* copy(const T* source, T* destination, u64 count);
 
+	void fill(void* data, u64 count, u8 value);
+
 	/**
 	 * A smart pointer that manages the lifetime of a dynamically allocated object and ensures unique ownership semantics.
 	 * @tparam T The type of the managed object.
@@ -211,6 +213,14 @@ namespace Arcane {
 			destination,
 			source,
 			count * sizeof(T)));
+#else
+#	error "Unimplemented."
+#endif
+	}
+
+	void fill(void* data, u64 count, u8 value) {
+#if defined(AR_PLATFORM_COMPILER_GCC)
+		__builtin_memset(data, value, count);
 #else
 #	error "Unimplemented."
 #endif
